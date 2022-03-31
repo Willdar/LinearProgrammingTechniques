@@ -12,14 +12,15 @@ threshold = 1e-5
 
 def OptimalityAssuranceCone(mode, **kw):
     """
-    The process to calculate the optimality assurance cone.
+    The main process to calculate the optimality assurance cone.
     """
 
     if mode != 'min' and mode != 'max':
-        raise TypeError('The type of LP problem is unknown, please input "min" or "max"')
+        raise TypeError('The type of LP problem is unknown, \
+            please input "min" or "max"')
     elif ('A' or 'b' or 'c') not in kw:
         raise NameError('The parameters are not fully given,', \
-            'please give "A", "b" for the LP equality constraints,', \
+            'please give "A", "b" for the equality constraints,', \
             'and "c" for the objective function.')
     else:
         A = kw['A']; b = kw['b']; c = kw['c']
@@ -40,7 +41,7 @@ def OptimalityAssuranceCone(mode, **kw):
         Basis = np.where(x >= threshold)[0].tolist()
     
     # Define a function to solve the subtraction of array
-    def SubArray(id: list, L: int) -> list:
+    def SubArray(id, L):
         return list(filter(lambda i: i not in id, range(L)))
 
     A_B = A[np.ix_(range(m), Basis)]
@@ -56,6 +57,7 @@ def OptimalityAssuranceCone(mode, **kw):
 
 if __name__ == '__main__':
     """
+
     The optimality assurance cone of a non-degenerated basic feasible solution 
     for a linear programming problem, which is in the form of 
 
@@ -74,6 +76,12 @@ if __name__ == '__main__':
         [0]. True or False
         [1]. The optimality assurance cone by 
             M@c <=(in maximization problem) or >=(in minimization problem) 0
+
+    The relative methodology as well as the illustrative figures can be found 
+    in the following paper:
+        
+        https://link.springer.com/article/10.1007/s10700-022-09383-2
+
     """
 
     A = np.matrix([

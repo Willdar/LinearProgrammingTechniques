@@ -19,20 +19,7 @@ np.set_printoptions(linewidth=400, threshold=sys.maxsize, suppress=True, \
 
 class OptimalityAnalysis(object):
     def __init__(self, mode, **kw) -> None:
-        """
-        Object = OptimalityAnalysis('min' or 'max', Aeq = None, beq = None, Gub = None, gub = None)
-
-        The __init__ is used for checking the input data, which should obey the rule below:
-        1. the mode of the LP problem in objective function, 'min' or 'max'
-        2. the coefficients in constraints, which should be equality ones.
-            Aeq * x = beq
-        3. the inexact coefficients in the objective function, should be inequality.
-            Gub * c <= gub
-        4. Aeq, beq, Gub and gub should all be numpy.matrix type
-        5. the dimension of Gub can be less than Aeq due to the all-zero objective coefficient.
-        6. there should not exist all-zero objective coefficient in Gub and gub.
-        """
-        # Check the input
+             # Check the input
         if mode != 'min' and mode != 'max':
             raise TypeError('The type of LP problem is unknown, please input "min" or "max"')
         if ('Aeq' or 'beq' or 'Gub' or 'gub') not in kw:
@@ -297,6 +284,43 @@ class OptimalityAnalysis(object):
 
 
 if __name__ == '__main__':
+    """
+    
+    The robust optimality analysis for a linear programming problem containing 
+    uncertain coefficients in the objective function, where it is assumed the
+    uncertainties are enclosed by a convex and bounded polytope.
+
+    The linear programming problem should be in the standard form as
+
+       max(min) c@x, s.t. Aeq@x = beq, x >= 0,
+
+    where c is enclosed by a series of constraints with
+
+        Gub@c <= gub,
+
+    where Gub and gub are the matrix and vector that construct the convex and bounded 
+    polytope.
+
+    The relative paper has not published yet but is already finished and waiting for
+    the judgement.
+
+    
+    The function is used by
+
+        Object = OptimalityAnalysis('min' or 'max', 
+        Aeq = None, beq = None, Gub = None, gub = None)
+
+    where the input data should obey the rules below:
+    1. the mode of the LP problem in objective function, 'min' or 'max'
+    2. the coefficients in constraints, which should be equality ones.
+        Aeq @ x = beq
+    3. the inexact coefficients in the objective function, should be inequality.
+    4. Aeq, beq, Gub and gub should all be numpy.matrix type
+    5. the dimension of Gub can be less than Aeq due to the all-zero objective 
+        coefficient.
+    6. there should not exist all-zero objective coefficient in Gub and gub.
+    """
+
     """
     A Numerical Example
     """

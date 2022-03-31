@@ -149,6 +149,29 @@ class ObliqueSym(Sym):
 
 
 if __name__ == '__main__':
+    """
+    
+    The robust optimality analysis to a linear programming problem
+    in the following form:
+    
+        max(min) c@x, s.t. A@x == b, x >= 0,
+
+    where A and b are constant matrix and vector to construct the 
+    feasible set of the problem. However, c is a objective vector 
+    composed of fuzzy numbers. 
+
+    To treat the problem, we use LL, LR, Oblique LL and LR fuzzy
+    numbers to represent the uncertainties. The only output is 
+    the optimality degree, which is a number from 0 to 1.
+
+    The main function is a class, where the solver would give the
+    correct answer. The examples can be found below.
+
+    The details can be found in the following paper:
+
+        https://link.springer.com/article/10.1007/s10700-022-09383-2
+        
+    """
     # Define the equality constraints at first with
     #   A@x == b
     A = np.matrix([
@@ -168,7 +191,7 @@ if __name__ == '__main__':
         ])
 
     # Assert the test case
-    TestCase = 'LR'
+    TestCase = 'LL'
 
     if TestCase == 'Sym':
         """
