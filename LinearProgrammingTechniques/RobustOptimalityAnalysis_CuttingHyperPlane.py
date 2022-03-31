@@ -314,7 +314,7 @@ if __name__ == '__main__':
     g = np.matrix([-23, 5, 3.5]).T
     tmp = OptimalityAnalysis('max', Aeq = A, beq = b, Gub=G, gub=g)
     succ, solv, mess = tmp.CuttingHyperplane()
-    print(succ)
+    print(succ, solv, mess)
 
     """
     Simulation Program
