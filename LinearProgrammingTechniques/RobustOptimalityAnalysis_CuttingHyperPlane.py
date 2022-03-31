@@ -319,6 +319,18 @@ if __name__ == '__main__':
     5. the dimension of Gub can be less than Aeq due to the all-zero objective 
         coefficient.
     6. there should not exist all-zero objective coefficient in Gub and gub.
+
+    The result is given by the following code
+
+        Object.CuttingHyperplane()
+
+    Moreover, to compare the proposed approach with the conventional approach by
+    listing all vertices, the conventional approach code is also added, which can
+    be run by the following code
+
+        Object.DirectApproach()
+
+    The result can be compared by counting the spent time.
     """
 
     """
