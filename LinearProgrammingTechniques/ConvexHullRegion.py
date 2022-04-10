@@ -3,35 +3,47 @@
 
 __author__ = 'Zhenzhong Gao at Inuiguchi Laboratory'
 
+# from tkinter import W
 import numpy as np
-from sci.spatial import ConvexHull
+from scipy.spatial import ConvexHull
 
-def ConvexHullRegion(A, b, **kw):
+def ConvexHullRegion(A, b, c, **kw):
     # Check the dimension of the inequality constraints region
-    m, n = A.shape
-    if b.shape != [m,1]:
-        raise ValueError('The size of the constraints is not correct')
+    #
+    #       {c in R^n: A @ c <= b}
+    #
+    # A and b should be numpy.array
+    if not (isinstance(A, np.ndarray) and isinstance(b, np.ndarray) \
+            and isinstance(c, np.ndarray)):
+        raise TypeError('A, b and center should be in numpy.array form')
 
-    # Define the center to generate a list of vertices
-    if 'center' not in kw:
-        center = np.ones(n)
-    else:
-        center = kw[center]
+    m, n = A.shape
+    if b.shape[0] != m or c.shape[0] != n:
+        raise ValueError('The dimension of input variables are wrong')
 
     # Define the number of vertices to define the convex hull region
     if 'number' not in kw:
-        number = 50
+        number = 10 * (n+1)
     else:
         number = kw[number]
 
     # Generate a list of vertices around the center
-    rng = np.random.default_rng(8823)
-    points = rng.random((3 * number, n))
-    scale = np.linalg.norm(center)
-    points = scale * 2 * (points - 0.5)
+    center = c; width = np.diag(np.absolute(c))
+    points = np.random.multivariate_normal(center, width/10, number)
 
-    # remove the vertices not in the region
+    # Remove the vertices not in the region
+    tmp = A @ points.T <= np.matrix(b).T @ np.ones([1,number])
+    tmp = np.all(tmp, axis=0)
+    tmp = np.where(tmp == True)[1]
+    points = points[tmp,:]
 
+    # Construct the convex hull by the derive vertices and obtain
+    # the valid points and the corresponding constraints
+    tmp = ConvexHull(points)
+    D = tmp.equations[:, :-1]
+    d = tmp.equations[:, -1]
+
+    return D,d
 
 
 if __name__ == '__main__':
@@ -53,5 +65,30 @@ if __name__ == '__main__':
     constraints with the following inquealities:
 
         {x in R(n): D @ x <= d}.
+
     """
-    pass
+    
+    A = np.array([[1/9,-1/3],
+                  [-4/9,1/3]])
+    b = np.array([0,0])
+    center = np.array([1,1])
+
+    D,d = ConvexHullRegion(A,b,center)
+
+    # Check the drawn region by plotting the figure:w
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+
+    x = np.linspace(0,5,10)
+    for i in range(D.shape[0]):
+        y = (D[i,0] * x + d[i]) / -D[i,1]
+        plt.plot(x,y,'r')
+
+    for j in range(A.shape[0]):
+        y = - A[j,0]/A[j,1] * x
+        plt.plot(x,y,'b')
+
+    plt.xlim([0,5])
+    plt.ylim([0,5])
+    plt.show()
+
