@@ -40,8 +40,14 @@ def ConvexHullRegion(A, b, c, **kw):
     # Construct the convex hull by the derive vertices and obtain
     # the valid points and the corresponding constraints
     tmp = ConvexHull(points)
+
+    # It is noted that the equations in the class satisfy the following
+    # conditions:
+    #
+    #       tmp.equations @ [vertices,1] <= 0
+    #
     D = tmp.equations[:, :-1]
-    d = tmp.equations[:, -1]
+    d = -tmp.equations[:, -1]
 
     return D,d
 
@@ -75,13 +81,15 @@ if __name__ == '__main__':
 
     D,d = ConvexHullRegion(A,b,center)
 
+    print(D @ center <= d)
+
     # Check the drawn region by plotting the figure:w
     import matplotlib.pyplot as plt
     fig = plt.figure()
 
     x = np.linspace(0,5,10)
     for i in range(D.shape[0]):
-        y = (D[i,0] * x + d[i]) / -D[i,1]
+        y = (D[i,0] * x - d[i]) / -D[i,1]
         plt.plot(x,y,'r')
 
     for j in range(A.shape[0]):
