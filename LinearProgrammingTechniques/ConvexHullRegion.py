@@ -19,23 +19,33 @@ def ConvexHullRegion(A, b, c, **kw):
 
     m, n = A.shape
     if b.shape[0] != m or c.shape[0] != n:
-        raise ValueError('The dimension of input variables are wrong')
+        raise ValueError('The dimensions of A, b and c do not correspond')
 
-    # Define the number of vertices to define the convex hull region
-    if 'number' not in kw:
-        number = 10 * (n+1)
+    # Define the number of constraints in the convex hull region
+    if 'constraint_num' in kw:
+        constraint_num = kw['constraint_num']
     else:
-        number = kw[number]
-
+        constraint_num = round(1.1 * (n+1))
+    # Define the success of the the convex hull region in the given one
+    if 'succ' in kw:
+        succ = kw['succ']
+    else:
+        succ = True
+        
+    """
+    the main process
+    """
     # Generate a list of vertices around the center
-    center = c; width = np.diag(np.absolute(c))
-    points = np.random.multivariate_normal(center, width/10, number)
+    center = c; width = np.diag(np.absolute(c)); No = 5*n
+    points = np.random.multivariate_normal(center, width/5, No)
 
     # Remove the vertices not in the region
-    tmp = A @ points.T <= np.matrix(b).T @ np.ones([1,number])
-    tmp = np.all(tmp, axis=0)
-    tmp = np.where(tmp == True)[1]
-    points = points[tmp,:]
+    if succ:
+        tmp = A @ points.T <= np.matrix(b).T @ np.ones([1,No])
+        tmp = np.all(tmp, axis=0)
+        tmp = np.where(tmp == True)[1]
+        points = points[tmp,:]
+    points = points[:constraint_num,:]
 
     # Construct the convex hull by the derive vertices and obtain
     # the valid points and the corresponding constraints
@@ -46,16 +56,19 @@ def ConvexHullRegion(A, b, c, **kw):
     #
     #       tmp.equations @ [vertices,1] <= 0
     #
-    D = tmp.equations[:, :-1]
-    d = -tmp.equations[:, -1]
+    res = tmp.equations
 
-    return D,d
+    return res[:, :-1], -res[:, -1]
 
 
 if __name__ == '__main__':
     """
     The main process to generate a convex hull region inside another
     region defined by a series of linear constraints.
+
+    The function is utilised by 
+
+        ConvexHullRegion(A, b, c, constraints = None(int), succ = None(bool))
 
     Input:  A --> np.array with R(m * n)
             b --> np.array with R(m)
@@ -79,8 +92,9 @@ if __name__ == '__main__':
     b = np.array([0,0])
     center = np.array([1,1])
 
-    D,d = ConvexHullRegion(A,b,center)
+    D,d = ConvexHullRegion(A,b,center,constraint_num=round(1.1*A.shape[1] + 3))
 
+    # Check if the center is in the convex hull
     print(D @ center <= d)
 
     # Check the drawn region by plotting the figure:w
@@ -93,10 +107,9 @@ if __name__ == '__main__':
         plt.plot(x,y,'r')
 
     for j in range(A.shape[0]):
-        y = - A[j,0]/A[j,1] * x
+        y = (A[j,0] * x - b[j]) / -A[j,1]
         plt.plot(x,y,'b')
 
     plt.xlim([0,5])
     plt.ylim([0,5])
     plt.show()
-
