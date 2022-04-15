@@ -13,6 +13,9 @@ from collections import Counter
 from itertools import combinations
 from datetime import datetime
 
+from OptimalityAssuranceCone import OptimalityAssuranceCone as OAC
+from ConvexHullRegion import ConvexHullRegion as CHR
+
 threshold = 1e-5
 np.set_printoptions(linewidth=400, threshold=sys.maxsize, suppress=True, \
     formatter={'float': lambda x: "{0:0.3f}".format(x)})
@@ -33,13 +36,12 @@ class OptimalityAnalysis(object):
             self.G, self.g = kw['Gub'], kw['gub']
 
         # Check the correctness of input data in dimension
-        # if not (isinstance(self.A, np.matrix) and isinstance(self.b, np.matrix) \
-        #     and isinstance(self.G, np.matrix) and isinstance(self.g, np.matrix)):
-        #     print('The type of input parameters is wrong, "Aeq", "Gub", "beq" and "gub" should be matrix.')
-        #     return False
-        if self.b.shape[0] != self.A.shape[0] or self.b.shape[1] != 1 or \
-            self.g.shape[0] != self.G.shape[0] or self.g.shape[1] != 1 or \
-            self.G.shape[1] > self.A.shape[1]:
+        if not (isinstance(self.A, np.ndarray) and isinstance(self.b, np.ndarray) \
+            and isinstance(self.G, np.ndarray) and isinstance(self.g, np.ndarray)):
+            raise TypeError('The type of input parameters is wrong, "Aeq", "Gub", "beq" and "gub" should be numpy.array.')
+        elif len(A.shape)!=2 or len(b.shape)!=1 or len(G.shape)!=2 or len(g.shape)!=1:
+            raise ValueError('The size of A, b, G or g is wrong')
+        elif self.b.shape[0]!=self.A.shape[0] or self.g.shape[0]!=self.G.shape[0] or self.G.shape[1]>self.A.shape[1]:
             raise ValueError('the dimension of some input parameters are wrong.')
 
         # print('Input parameters seems to be correct, using "CuttingHyperplane" or "DirectApproach"', \
@@ -271,7 +273,7 @@ class OptimalityAnalysis(object):
 
         A_B = self.A[np.ix_(range(m), Basis)]
         A_N = self.A[np.ix_(range(m), SubArray(Basis, n))]
-        tmp = np.concatenate(((-np.linalg.inv(A_B)*A_N).T, np.identity(n-m)), axis=1)
+        tmp = np.concatenate(((-np.linalg.inv(A_B) @ A_N).T, np.identity(n-m)), axis=1)
         Index_u = Basis + SubArray(Basis, n)
         idx = np.empty_like(Index_u)
         idx[Index_u] = np.arange(n)
@@ -336,25 +338,59 @@ if __name__ == '__main__':
     """
     A Numerical Example
     """
-    A = np.matrix([
-        [3,4,1,0,0],
-        [3,1,0,1,0],
-        [0,1,0,0,1]
-    ])
-    b = np.matrix([42, 24, 9]).T
-    G = np.matrix([
-        [-3, -4],
-        [1, 0],
-        [0, 1]
-    ])
-    g = np.matrix([-23, 5, 3.5]).T
-    tmp = OptimalityAnalysis('max', Aeq = A, beq = b, Gub=G, gub=g)
-    succ, solv, mess = tmp.CuttingHyperplane()
-    print(succ, solv, mess)
+    # A = np.matrix([
+    #     [3,4,1,0,0],
+    #     [3,1,0,1,0],
+    #     [0,1,0,0,1]
+    # ])
+    # b = np.matrix([42, 24, 9]).T
+    # G = np.matrix([
+    #     [-3, -4],
+    #     [1, 0],
+    #     [0, 1]
+    # ])
+    # g = np.matrix([-23, 5, 3.5]).T
+    # tmp = OptimalityAnalysis('max', Aeq = A, beq = b, Gub=G, gub=g)
+    # succ, solv, mess = tmp.CuttingHyperplane()
+    # print(succ, solv, mess)
 
     """
     Simulation Program
     """
+    file_name = 'sim' + datetime.now().strftime("-%Y-%m-%d-%H-%M") + '.dat'
+    # with open(file_name, 'w') as f:
+    #     f.write('')
+
+    m_l, m_u = 5,10
+    for m in range(m_l, m_u):
+        n_l, n_u = round(0.8 * m), round(1.2 * m)
+        for n in range(n_l, n_u):
+            A = np.random.uniform(10, 100, size=(m,n))
+            A = np.c_[A, np.eye(A.shape[0])]
+            b = np.random.uniform(100, 1000, size=(m,))
+            c = np.random.uniform(100, 1000, size=(m+n,))
+
+            # Obtain the optimality assurance cone of the max LP(A,b,c)
+            # to M @ c <= 0:
+            res = OAC('max', A = A, b = b, c = c)
+            if not res[0]:
+                break
+            else:
+                M = res[1]
+
+            # Obtain the convex hull region randomly in the optimality
+            # assurance cone by D @ c <= d
+            G, g = CHR(-M, np.zeros(M.shape[0]), c, constraint_num = 3*n)
+
+            # Solve the problem in both cutting and direct ways.
+            tmp = OptimalityAnalysis('max', Aeq=A, beq=b, Gub=G, gub=g)
+            succ, solv, mess = tmp.CuttingHyperplane()
+            print(succ, solv, mess)
+
+
+
+
+    
     # TIME = datetime.now().strftime("-%Y-%m-%d-%H-%M-%S")
     # FILE = 'data'+TIME+'.txt'
 
