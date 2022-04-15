@@ -11,7 +11,6 @@ import time
 from scipy.optimize import linprog as LinearProgrammingSolver
 from collections import Counter
 from itertools import combinations
-from datetime import datetime
 
 from OptimalityAssuranceCone import OptimalityAssuranceCone as OAC
 from ConvexHullRegion import ConvexHullRegion as CHR
@@ -218,7 +217,7 @@ class OptimalityAnalysis(object):
         v_tmp = np.zeros(n)
         for i in range(n):
             c = np.zeros(n); c[i] = 1
-            res_t = LinearProgrammingSolver(c, A_ub=self.G, b_ub=self.g, bounds=Bounds)
+            res_t = LinearProgrammingSolver(c, A_ub=self.G, b_ub=self.g, bounds=Bounds, method='simplex')
             if not res_t.success:
                 print('The', i+1, 'th varibles is not bounded with error code', res_t.status) 
                 return False
@@ -357,7 +356,8 @@ if __name__ == '__main__':
     """
     Simulation Program
     """
-    file_name = 'sim' + datetime.now().strftime("-%Y-%m-%d-%H-%M") + '.dat'
+    from datetime import datetime
+    FILE = 'sim' + datetime.now().strftime("-%Y-%m-%d-%H-%M") + '.dat'
     # with open(file_name, 'w') as f:
     #     f.write('')
 
@@ -380,12 +380,25 @@ if __name__ == '__main__':
 
             # Obtain the convex hull region randomly in the optimality
             # assurance cone by D @ c <= d
-            G, g = CHR(-M, np.zeros(M.shape[0]), c, constraint_num = 3*n)
+            G, g = CHR(-M, np.zeros(M.shape[0]), c, number=round(1.2*(m+n)))
 
             # Solve the problem in both cutting and direct ways.
+            with open(FILE, 'a') as f:
+                f.write(str(A.shape[0]) + '\t' + str(A.shape[1]) + '\t' + \
+                    str(G.shape[0]) + '\t' + str(G.shape[1]) + '\t')
             tmp = OptimalityAnalysis('max', Aeq=A, beq=b, Gub=G, gub=g)
+            t0 = time.time()
             succ, solv, mess = tmp.CuttingHyperplane()
-            print(succ, solv, mess)
+            t1 = time.time()
+            # print(succ, solv, mess)
+            with open(FILE, 'a') as f:
+                # res = str(succ) + '\t' + str(t1-t0) + '\t'
+                f.write(f'{succ}\t{t1-t0:.4f}\t')
+            succ, solv, mess = tmp.DirectApproach()
+            t2 = time.time()
+            with open(FILE, 'a') as f:
+                # res = str(succ) + '\t' + str(t2-t1) + '\n'
+                f.write(f'{succ}\t{t2-t1:.4f}\n')
 
 
 
