@@ -23,31 +23,43 @@ def ConvexHullRegion(A, b, c, **kw):
 
     # Define the number of vertices to define the convex hull region
     if 'number' not in kw:
-        number = 10 * (n+1)
+        num_c = (n+1)
     else:
-        number = kw[number]
+        num_c = kw['number']
+    
+    num_v = num_c
 
     # Generate a list of vertices around the center
     center = c; width = np.diag(np.absolute(c))
-    points = np.random.multivariate_normal(center, width/10, number)
+    points = np.random.multivariate_normal(center, width/10, num_v)
 
     # Remove the vertices not in the region
-    tmp = A @ points.T <= np.matrix(b).T @ np.ones([1,number])
+    tmp = A @ points.T <= np.matrix(b).T @ np.ones([1,num_v])
     tmp = np.all(tmp, axis=0)
     tmp = np.where(tmp == True)[1]
     points = points[tmp,:]
 
     # Construct the convex hull by the derive vertices and obtain
     # the valid points and the corresponding constraints
-    tmp = ConvexHull(points)
+    while True:
+        hull = ConvexHull(points)
+        constraints = hull.equations
+        if constraints.shape[0] >= num_c:
+            break
+        else:
+            while True:
+                p = np.random.multivariate_normal(center, width/10, 1)
+                if np.all(A @ p.T <= np.matrix(b).T):
+                    points = np.r_[points, p]
+                    break
 
     # It is noted that the equations in the class satisfy the following
     # conditions:
     #
     #       tmp.equations @ [vertices,1] <= 0
     #
-    D = tmp.equations[:, :-1]
-    d = -tmp.equations[:, -1]
+    D = constraints[:, :-1]
+    d = -constraints[:, -1]
 
     return D,d
 
@@ -56,22 +68,35 @@ if __name__ == '__main__':
     """
     The main process to generate a convex hull region inside another
     region defined by a series of linear constraints.
-
-    Input:  A --> np.array with R(m * n)
-            b --> np.array with R(m)
-    Output: D --> np.array with R(l * p)
-            d --> np.array with R(p)
-
+    
     The input variables forms a region constrained by a series of constraints
     with the following inequalities:
 
-        {x in R(n)matrix matrix : A @ x <= b}.
+        {x in R(n)matrix matrix : A @ x <= b}
 
     The output variables also forms a region constrained by a series of 
     constraints with the following inquealities:
 
         {x in R(n): D @ x <= d}.
 
+    The function is used by 
+
+        D, d = ConvexHullRegion(A, b, center, number=None)
+
+    The parameters follows
+
+    Input:  A --> np.array with R(m * n)
+            b --> np.array with R(m)
+            center --> np.array with R(n)
+            number --> int
+    Output: D --> np.array with R(l * p)
+            d --> np.array with R(p)
+
+    It is noted that c is given as the candidate objective vector for generating
+    a series of vertices in defining the convex hull. 
+
+    number=None can be given for specifying the number of valid constraints in 
+    defining the convex hull.
     """
     
     A = np.array([[1/9,-1/3],
@@ -79,7 +104,7 @@ if __name__ == '__main__':
     b = np.array([0,0])
     center = np.array([1,1])
 
-    D,d = ConvexHullRegion(A,b,center)
+    D,d = ConvexHullRegion(A,b,center, number=5)
 
     print(D @ center <= d)
 
